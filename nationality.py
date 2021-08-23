@@ -1,35 +1,15 @@
-from selenium import webdriver
-from selenium.webdriver import ChromeOptions
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
-from results import getAllResults
-from time import sleep as sl
-import json
+from athlete import athleteResults
+from webDriver import getSoup
 
-def athleteResults(url):
-    options = Options()
-    options.headless = True; options.add_argument("--log-level=3")
+def nationalityAthletes(browser, soup):
+    athletesLinks = soup.find('table', class_='table nowrap dataTable no-footer').find_all('a')
 
-    browser = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-    browser.get(url)
-    sl(2)
-    webSite = browser.page_source
-
-    soup = BeautifulSoup(webSite, 'html.parser')
-
-    resultsLinks = soup.find_all('a', class_='link_results fr')
-
-    # file = open('result.txt', 'a')
+    results = []
     
-    for resultLink in resultsLinks:
-        resultLink = resultLink['href']
-        result = getAllResults('https://www.ibsf.org' + resultLink) # O link de retorno é apenas /en/component/events/event/(ID)
-        resultsLinks.index(resultLink) = result
-    #     file.write(json.dumps(result, indent=4))
+    for athleteLink in athletesLinks:
+        athleteLink = 'https://www.ibsf.org' + athleteLink['href'] # O link de retorno é apenas /en/component/events/event/(ID)
+        athleteSoup = getSoup(browser, athleteLink)
+        athlete = athleteResults(athleteSoup) 
+        results.append(athlete)
 
-    # file.close()
-
-    return resultsLinks
-
-athleteResults('https://www.ibsf.org/en/athletes/athlete/100048')
+    return results
