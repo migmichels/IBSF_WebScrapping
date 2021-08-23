@@ -1,22 +1,3 @@
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
-from time import sleep as sl
-import json
-
-
-def getWebSite(url):
-    # Requisita o site com a URL do resultado
-    options = Options()
-    options.headless = True
-    browser = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-    browser.get(url)
-    sl(2)
-    webSite = browser.page_source
-
-    return BeautifulSoup(webSite, 'html.parser')
-
 def getRunAttributes(soup):
     # Lugar
     place = soup.find('div', class_='place').contents[0]
@@ -50,9 +31,6 @@ def getTeamAttributes(teams, runs):
         return athletes
 
     def getRunsTeam(indexRun, limitRun):
-        def wordProcessing(run) :
-            pass
-
         # O número de corridas por equipe é igual á quantidade de corridas, dividida pela quantidade de equipes
         limitRun += int(len(runs)/len(teams))
 
@@ -68,59 +46,61 @@ def getTeamAttributes(teams, runs):
             # O primeiro index indica o número da corrida, então é deletado. Ex: RUN 1, RUN 2 etc.
             del run[0]
 
-            # Aqui é feito o de cada resultado da corrida
+            # Aqui é feito o tratamento de cada resultado da corrida
             i = 0
             while i < len(run):
+                runValue = run[i]
                 # Algumas informações vinha com tags, ou em formato de tag (<>)
                 # O BeautifulSoup trata Tag como um tipo diferente de atributo
                 # Outras informações vinha com mais de um conteúdo
                 # Então dentro deste if, é feita a junção de todos os conteúdos em um só
-                if len(run[i].contents) > 1:
+
+                if len(runValue.contents) > 1:
                     contentIndex = 0
-                    while contentIndex < len(run[i].contents):
-                        run[i].contents[contentIndex] = str(run[i].contents[contentIndex])
+                    while contentIndex < len(runValue.contents):
+                        runValue.contents[contentIndex] = str(runValue.contents[contentIndex])
                         contentIndex+= 1
 
-                    run[i] = ''.join(run[i].contents)
+                    runValue = ''.join(runValue.contents)
 
                 # Caso venha alguma informação que tenha apenas um conteúdo e que não seja do tipo string
                 # É convertido então em string, para tratamento posterior
-                elif type(run[i]) != str:
-                    run[i] = str(run[i].contents[0])
-                else: run[i] = run[i].contents[0]
+                elif type(runValue) != str:
+                    runValue = str(runValue.contents[0])
+                else: runValue = runValue.contents[0]
 
                 # Como há diversos padrões nos conteúdos
                 # São feitas tentativas para tratamento, pois algumas podem dar erro
                 try:
                     # Primeiramente é retirado os espaços do início e do final com a função strip()
                     try :
-                        run[i] = run[i].strip()
+                        runValue = runValue.strip()
     
                         # Caso houver tags (<>) em formato de strings
                         # Essa será removida
-                        while '<' in run[i] :
-                            tag = run[i].split('<')[1].split('>')[0]
-                            run[i] = run[i].replace(tag, ''); run[i] = run[i].replace('<>', ''); run[i] = run[i].replace('  ', ' ')
+                        while '<' in runValue :
+                            tag = runValue.split('<')[1].split('>')[0]
+                            runValue = runValue.replace(tag, ''); runValue = runValue.replace('<>', ''); runValue = runValue.replace('  ', ' ')
                     except: pass
 
                     # caso ouverem números em reais sem mais nenhum conteúdo, o conteúdo é convertido em float
-                    try: run[i] = float(run[i])
+                    try: runValue = float(runValue)
                     except: pass
 
                     # Havia alguns desses caracteres vindo junto com as informações
-                    run[i] = run[i].replace('\n', '')
-                    run[i] = run[i].replace('\xa0\xa0', ' ')
+                    runValue = runValue.replace('\n', '')
+                    runValue = runValue.replace('\xa0\xa0', ' ')
                     
                     # Para os campos sem informação, representado por '-', esse é convertido para None (vazio)
-                    if run[i] == '-': run[i] = None; pass
+                    if runValue == '-': runValue = None; pass
                     
                 except: pass
 
-                if type(run[i]) == str:
-                    if '(' in run[i] or ')' in run[i] :
-                        time = run[i].split(' ')[0]
+                if type(runValue) == str:
+                    if '(' in runValue or ')' in runValue :
+                        time = runValue.split(' ')[0] # O tempo é separado dos parênteses por um espaço. assim o primeiro conteúdo é o tempo
 
-                        if ':' in time :
+                        if ':' in time : # Caso o número seja maior que 1 min, o valor é quebrado pra mn:sc:ms
                             time = time.split(':')
                             minute = float(time[0])
                             second = float(time[1])
@@ -128,9 +108,10 @@ def getTeamAttributes(teams, runs):
                             time = second
                         time = float(time)
                         total += time
-                # print((run[i]))
 
+                run[i] = runValue
                 i+=1
+
 
             runsTeam.append(run)
             indexRun+=1
@@ -138,8 +119,7 @@ def getTeamAttributes(teams, runs):
         # print(runsTeam)
 
         return indexRun, limitRun, runsTeam, total
-    
-    
+
     # Cada corrida é separada em 'tr' de classe 'run' diferente
     # indexRun : index do tr de classe run, limitRun : Quantidade de corridas por equipe
     indexRun, limitRun = 0, 0
@@ -160,25 +140,15 @@ def getTeamAttributes(teams, runs):
             'total' : total
             }
 
-        # print(teamInfos)
-
         index = teams.index(team)
         teams[index] = teamInfos
 
     return teams
 
-def getAllResults(url): 
-    soup = getWebSite(url)
+def getAllResults(soup):
     place, datetime, category, teams, runs = getRunAttributes(soup)
     
     teams = getTeamAttributes(teams, runs)
-
-    # print(teams)
-    # print(len(teams)) # Quantidade de times
-
-    # print(place)
-    # print(datetime)
-    # print(category)
 
     return(
         {
@@ -188,9 +158,3 @@ def getAllResults(url):
             'teams' : teams,
         }
     )
-
-# getAllResults('https://www.ibsf.org/en/component/events/event/500812')
-# print(getAllResults('https://www.ibsf.org/en/component/events/event/500812'))
-
-with open('result.txt', 'w') as file: file.write(json.dumps(getAllResults('https://www.ibsf.org/en/component/events/event/500352'), indent=4))
-# print(json.dumps(getAllResults('https://www.ibsf.org/en/component/events/event/500812'), indent=4))
