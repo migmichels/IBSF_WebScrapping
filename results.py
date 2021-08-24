@@ -47,9 +47,8 @@ def getTeamAttributes(teams, runs):
             del run[0]
 
             # Aqui é feito o tratamento de cada resultado da corrida
-            i = 0
-            while i < len(run):
-                runValue = run[i]
+            for runValue in run:
+                indexValue = run.index(runValue)
                 # Algumas informações vinha com tags, ou em formato de tag (<>)
                 # O BeautifulSoup trata Tag como um tipo diferente de atributo
                 # Outras informações vinha com mais de um conteúdo
@@ -93,7 +92,7 @@ def getTeamAttributes(teams, runs):
                     
                     # Para os campos sem informação, representado por '-', esse é convertido para None (vazio)
                     if runValue == '-': runValue = None; pass
-                    
+
                 except: pass
 
                 if type(runValue) == str:
@@ -109,9 +108,8 @@ def getTeamAttributes(teams, runs):
                         time = float(time)
                         total += time
 
-                run[i] = runValue
-                i+=1
-
+                run[indexValue] = runValue
+            # Fim tratamento
 
             runsTeam.append(run)
             indexRun+=1
