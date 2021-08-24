@@ -1,4 +1,6 @@
-def getRunAttributes(soup):
+def getRaceAttributes(soup):
+    global place, datetime, category, teams, runs, quantityRunsPerTeam
+
     # Lugar
     place = soup.find('div', class_='place').contents[0]
     # Data e Hora
@@ -6,121 +8,142 @@ def getRunAttributes(soup):
     # Categoria
     category = soup.find('div', class_='category').contents[1].contents[0]
     # Informações de cada equipe está neste tr, como nome dos atletas e país
-    teams = soup.find_all('tr', class_='crew')
+    teams = soup.select('.visible-xs .fl.athletes')
     # Cada corrida esta num tr de classe run, separado do tr de classe crew, ou seja, não está agrupado com o 'teams' sendo assim segue-se uma lógica diferente explicada a seguir
     runs = soup.find_all('tr', class_='run')
 
-    return place, datetime, category, teams, runs
+    quantityRunsPerTeam = int(len(runs)/len(teams))
 
-def getTeamAttributes(teams, runs):
-    def getAthletes(team):
-        # O nome de cada atleta fica dentro de um <a>
-        # Este find_all() pega todos os links que existe dentro de cada 'fl athletes', e pondo cada um num array da equipe
-        athletes = team.find('div', class_='fl athletes').find_all('a')
+def getSpecificTeam(athleteURL, soup):
+    getRaceAttributes(soup)
 
-        # Para cada item de athletes, vai ser pego apenas o seu nome, e feito tratamento de texto
-        for athlete in athletes:
-            # O index do atleta, para alterar o valor do atleta no array "athletes"
-            indexAthletes = athletes.index(athlete)
+    team = soup.find_all('a', href=athleteURL)[1].parent
 
-            # Tratamento de texto, pois haviam algumas quebras de linha
-            # print(athlete[indexAthletes]) # Compare descomentando esse print() e o próximo
-            athletes[indexAthletes] = athlete.contents[0].replace('\n', '')
-            # print(athlete[indexAthletes])
+    country = team.find('img', class_='country-flag')['alt']
 
-        return athletes
+    athletes = getAthletes(team)
 
-    def getRunsTeam(indexRun, limitRun):
-        # O número de corridas por equipe é igual á quantidade de corridas, dividida pela quantidade de equipes
-        limitRun += int(len(runs)/len(teams))
+    limitRun = quantityRunsPerTeam*(teams.index(team)+1)
+    runsTeam, total = getRuns(limitRun)
 
-        # runsTeam : Array com corridas por equipe
-        # Quando começar a iteração de uma nova equipe, a variável é resetada
-        runsTeam = []
-        
-        total = 0
-        # Nesse loop são pegas as informações de cada corrida, e feito o tratamento das informações
-        while indexRun < limitRun : # Enquanto o index for menor que a quantidade de corrida...
-            # run : array com cada tempo da corrida
-            run = runs[indexRun].find_all('td')
-            # O primeiro index indica o número da corrida, então é deletado. Ex: RUN 1, RUN 2 etc.
-            del run[0]
+    return(
+        {
+            'place' : place,
+            'datetime' : datetime,
+            'category' : category,
+            'team' : {  'country' : country,
+                        'athletes' : athletes,
+                        'runs' : runsTeam,
+                        'total' : total
+            }
+        }
+    )
 
-            # Aqui é feito o tratamento de cada resultado da corrida
-            for runValue in run:
-                indexValue = run.index(runValue)
-                # Algumas informações vinha com tags, ou em formato de tag (<>)
-                # O BeautifulSoup trata Tag como um tipo diferente de atributo
-                # Outras informações vinha com mais de um conteúdo
-                # Então dentro deste if, é feita a junção de todos os conteúdos em um só
+def getAthletes(team):
+    # O nome de cada atleta fica dentro de um <a>
+    # Este find_all() pega todos os links que existe dentro de cada 'fl athletes', e pondo cada um num array da equipe
+    athletes = team.find_all('a')
 
-                if len(runValue.contents) > 1:
-                    contentIndex = 0
-                    while contentIndex < len(runValue.contents):
-                        runValue.contents[contentIndex] = str(runValue.contents[contentIndex])
-                        contentIndex+= 1
+    # Para cada item de athletes, vai ser pego apenas o seu nome, e feito tratamento de texto
+    for athlete in athletes:
+        # O index do atleta, para alterar o valor do atleta no array "athletes"
+        indexAthletes = athletes.index(athlete)
 
-                    runValue = ''.join(runValue.contents)
+        # Tratamento de texto, pois haviam algumas quebras de linha
+        # print(athlete[indexAthletes]) # Compare descomentando esse print() e o próximo
+        athletes[indexAthletes] = athlete.contents[0].replace('\n', '')
+        # print(athlete[indexAthletes])
 
-                # Caso venha alguma informação que tenha apenas um conteúdo e que não seja do tipo string
-                # É convertido então em string, para tratamento posterior
-                elif type(runValue) != str:
-                    runValue = str(runValue.contents[0])
-                else: runValue = runValue.contents[0]
+    return athletes
 
-                # Como há diversos padrões nos conteúdos
-                # São feitas tentativas para tratamento, pois algumas podem dar erro
-                try:
-                    # Primeiramente é retirado os espaços do início e do final com a função strip()
-                    try :
-                        runValue = runValue.strip()
-    
-                        # Caso houver tags (<>) em formato de strings
-                        # Essa será removida
-                        while '<' in runValue :
-                            tag = runValue.split('<')[1].split('>')[0]
-                            runValue = runValue.replace(tag, ''); runValue = runValue.replace('<>', ''); runValue = runValue.replace('  ', ' ')
-                    except: pass
+def getRuns(limitRun):
+    firstRun = limitRun-quantityRunsPerTeam
 
-                    # caso ouverem números em reais sem mais nenhum conteúdo, o conteúdo é convertido em float
-                    try: runValue = float(runValue)
-                    except: pass
+    # runsTeam : Array com corridas por equipe
+    # Quando começar a iteração de uma nova equipe, a variável é resetada
+    runsTeam = []
 
-                    # Havia alguns desses caracteres vindo junto com as informações
-                    runValue = runValue.replace('\n', '')
-                    runValue = runValue.replace('\xa0\xa0', ' ')
-                    
-                    # Para os campos sem informação, representado por '-', esse é convertido para None (vazio)
-                    if runValue == '-': runValue = None; pass
+    total = 0
+    # Nesse loop são pegas as informações de cada corrida, e feito o tratamento das informações
+    for indexRun in range(firstRun, limitRun) : # Enquanto o index for menor que a quantidade de corrida...
+        # run : array com cada tempo da corrida
+        run = runs[indexRun].find_all('td')
+        # O primeiro index indica o número da corrida, então é deletado. Ex: RUN 1, RUN 2 etc.
+        del run[0]
 
+        for runValue in run:
+            indexValue = run.index(runValue)
+            # Algumas informações vinha com tags, ou em formato de tag (<>)
+            # O BeautifulSoup trata Tag como um tipo diferente de atributo
+            # Outras informações vinha com mais de um conteúdo
+            # Então dentro deste if, é feita a junção de todos os conteúdos em um só
+
+            if len(runValue.contents) > 1:
+                contentIndex = 0
+                while contentIndex < len(runValue.contents):
+                    runValue.contents[contentIndex] = str(runValue.contents[contentIndex])
+                    contentIndex+= 1
+
+                runValue = ''.join(runValue.contents)
+
+            # Caso venha alguma informação que tenha apenas um conteúdo e que não seja do tipo string
+            # É convertido então em string, para tratamento posterior
+            elif type(runValue) != str:
+                runValue = str(runValue.contents[0])
+            else: runValue = runValue.contents[0]
+
+            # Como há diversos padrões nos conteúdos
+            # São feitas tentativas para tratamento, pois algumas podem dar erro
+            try:
+                # Primeiramente é retirado os espaços do início e do final com a função strip()
+                try :
+                    runValue = runValue.strip()
+
+                    # Caso houver tags (<>) em formato de strings
+                    # Essa será removida
+                    while '<' in runValue :
+                        tag = runValue.split('<')[1].split('>')[0]
+                        runValue = runValue.replace(tag, ''); runValue = runValue.replace('<>', ''); runValue = runValue.replace('  ', ' ')
                 except: pass
 
-                if type(runValue) == str:
-                    if '(' in runValue or ')' in runValue :
-                        time = runValue.split(' ')[0] # O tempo é separado dos parênteses por um espaço. assim o primeiro conteúdo é o tempo
+                # caso ouverem números em reais sem mais nenhum conteúdo, o conteúdo é convertido em float
+                try: runValue = float(runValue)
+                except: pass
 
-                        if ':' in time : # Caso o número seja maior que 1 min, o valor é quebrado pra mn:sc:ms
-                            time = time.split(':')
-                            minute = float(time[0])
-                            second = float(time[1])
-                            second = second + minute*60
-                            time = second
-                        time = float(time)
-                        total += time
+                # Havia alguns desses caracteres vindo junto com as informações
+                runValue = runValue.replace('\n', '')
+                runValue = runValue.replace('\xa0\xa0', ' ')
+                
+                # Para os campos sem informação, representado por '-', esse é convertido para None (vazio)
+                if runValue == '-': runValue = None; pass
 
-                run[indexValue] = runValue
-            # Fim tratamento
+            except: pass
 
-            runsTeam.append(run)
-            indexRun+=1
+            if type(runValue) == str:
+                if '(' in runValue or ')' in runValue :
+                    time = runValue.split(' ')[0] # O tempo é separado dos parênteses por um espaço. assim o primeiro conteúdo é o tempo
 
-        # print(runsTeam)
+                    if ':' in time : # Caso o número seja maior que 1 min, o valor é quebrado pra mn:sc:ms
+                        time = time.split(':')
+                        minute = float(time[0])
+                        second = float(time[1])
+                        second = second + minute*60
+                        time = second
+                    time = float(time)
+                    total += time
 
-        return indexRun, limitRun, runsTeam, total
+            run[indexValue] = runValue
 
+        runsTeam.append(run)
+
+    # print(runsTeam)
+
+    return runsTeam, total
+
+def getTeamAttributes(teams):
     # Cada corrida é separada em 'tr' de classe 'run' diferente
     # indexRun : index do tr de classe run, limitRun : Quantidade de corridas por equipe
-    indexRun, limitRun = 0, 0
+    limitRun = 0
 
     # Para cada div da equipe (ou para cada equipe) vai ser feita uma função...
     for team in teams:
@@ -129,7 +152,9 @@ def getTeamAttributes(teams, runs):
 
         athletes = getAthletes(team)
 
-        indexRun, limitRun, runsTeam, total = getRunsTeam(indexRun, limitRun)
+        # O número de corridas por equipe é igual á quantidade de corridas, dividida pela quantidade de equipes
+        limitRun += quantityRunsPerTeam
+        runsTeam, total = getRuns(limitRun)
 
         teamInfos = {
             'country' : country,
@@ -143,10 +168,12 @@ def getTeamAttributes(teams, runs):
 
     return teams
 
-def getAllResults(soup):
-    place, datetime, category, teams, runs = getRunAttributes(soup)
-    
-    teams = getTeamAttributes(teams, runs)
+def getRace(soup, all = True):
+    global teams
+
+    if all: getRaceAttributes(soup)
+
+    teams = getTeamAttributes(teams)
 
     return(
         {

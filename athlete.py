@@ -1,4 +1,4 @@
-from results import getAllResults
+from results import getRace
 from webDriver import getSoup
 
 def athleteResults(browser, soup):
@@ -9,7 +9,7 @@ def athleteResults(browser, soup):
     for resultLink in resultsLinks:
         resultLink = 'https://www.ibsf.org' + resultLink['href'] # O link de retorno é apenas /en/component/events/event/(ID)
         resultSoup = getSoup(browser, resultLink)
-        result = getAllResults(resultSoup)
+        result = getRace(resultSoup)
         results.append(result)
 
     return results
