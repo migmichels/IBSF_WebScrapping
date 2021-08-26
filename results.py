@@ -162,7 +162,8 @@ def getRace(soupParameter, athleteUrl = False):
     global soup
     soup = soupParameter
 
-    print('Processando os dados da corrida ' )
+    race = str(soup.find('base')['href']).split('event/')[1]
+    print('Processando os dados da corrida ' + race)
     getRaceAttributes()
     
     if athleteUrl: getSpecificTeam(athleteUrl)
