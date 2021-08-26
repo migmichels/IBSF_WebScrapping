@@ -13,7 +13,11 @@ def startBrowser():
 
 def getSoup(browser, url):
     browser.get(url)
-    sl(2)
+    print('Carregando a página: ' + url)
+    while len(browser.find_elements_by_class_name("odd")) < 1 and len(browser.find_elements_by_class_name("run")) < 1 :
+        sl(0.3)
+        pass
+    
     webSite = browser.page_source
 
     soup = BeautifulSoup(webSite, 'html.parser')

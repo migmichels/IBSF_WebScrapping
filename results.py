@@ -1,4 +1,4 @@
-def getRaceAttributes(soup):
+def getRaceAttributes():
     global place, datetime, category, teams, runs, quantityRunsPerTeam
 
     # Lugar
@@ -14,30 +14,16 @@ def getRaceAttributes(soup):
 
     quantityRunsPerTeam = int(len(runs)/len(teams))
 
-def getSpecificTeam(athleteURL, soup):
-    getRaceAttributes(soup)
+def getSpecificTeam(athleteURL):
+    global teams
 
     team = soup.find_all('a', href=athleteURL)[1].parent
 
-    country = team.find('img', class_='country-flag')['alt']
-
-    athletes = getAthletes(team)
-
     limitRun = quantityRunsPerTeam*(teams.index(team)+1)
-    runsTeam, total = getRuns(limitRun)
+    
+    teams = processTeamAttributes(team, limitRun)
 
-    return(
-        {
-            'place' : place,
-            'datetime' : datetime,
-            'category' : category,
-            'team' : {  'country' : country,
-                        'athletes' : athletes,
-                        'runs' : runsTeam,
-                        'total' : total
-            }
-        }
-    )
+    # runsTeam, total = getRuns(limitRun)
 
 def getAthletes(team):
     # O nome de cada atleta fica dentro de um <a>
@@ -140,46 +126,53 @@ def getRuns(limitRun):
 
     return runsTeam, total
 
-def getTeamAttributes(teams):
+def processTeamAttributes(team, limitRun):
+    # O nome do país está em img, no campo de descrição alt
+    country = team.find('img', class_='country-flag')['alt']
+
+    athletes = getAthletes(team)
+
+    # O número de corridas por equipe é igual á quantidade de corridas, dividida pela quantidade de equipes
+    limitRun += quantityRunsPerTeam
+    runsTeam, total = getRuns(limitRun)
+
+    return {
+        'country' : country,
+        'athletes' : athletes,
+        'runs' : runsTeam,
+        'total' : total
+        }
+
+def getTeamsAttributes(teams):
+    global quantityRunsPerTeam
     # Cada corrida é separada em 'tr' de classe 'run' diferente
     # indexRun : index do tr de classe run, limitRun : Quantidade de corridas por equipe
     limitRun = 0
 
     # Para cada div da equipe (ou para cada equipe) vai ser feita uma função...
     for team in teams:
-        # O nome do país está em img, no campo de descrição alt
-        country = team.find('img', class_='country-flag')['alt']
-
-        athletes = getAthletes(team)
-
-        # O número de corridas por equipe é igual á quantidade de corridas, dividida pela quantidade de equipes
-        limitRun += quantityRunsPerTeam
-        runsTeam, total = getRuns(limitRun)
-
-        teamInfos = {
-            'country' : country,
-            'athletes' : athletes,
-            'runs' : runsTeam,
-            'total' : total
-            }
+        teamInfos = processTeamAttributes(team, limitRun)
 
         index = teams.index(team)
         teams[index] = teamInfos
 
     return teams
 
-def getRace(soup, all = True):
-    global teams
+def getRace(soupParameter, athleteUrl = False):
+    global soup
+    soup = soupParameter
 
-    if all: getRaceAttributes(soup)
-
-    teams = getTeamAttributes(teams)
+    print('Processando os dados da corrida ' )
+    getRaceAttributes()
+    
+    if athleteUrl: getSpecificTeam(athleteUrl)
+    else: getTeamsAttributes(teams)
 
     return(
         {
             'place' : place,
             'datetime' : datetime,
             'category' : category,
-            'teams' : teams,
+            'teams' : teams
         }
     )
