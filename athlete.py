@@ -20,7 +20,7 @@ def athleteResults(browser, soup):
             results.append(result)
         
         indexPage+=1
-        if indexPage == lenghtPages+1: break
+        if indexPage == lenghtPages: break
         soup = getSoup(browser, (url + str(indexPage)))
 
     return results

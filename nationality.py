@@ -23,4 +23,4 @@ def nationalityAthletes(browser, soup, url):
         if indexPage == lenghtPages+1: break
         soup = getSoup(browser, (url + str(indexPage)))
 
-    return len(athletes)
+    return athletes

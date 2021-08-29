@@ -19,11 +19,11 @@ def getSoup(browser, url):
     t0 = time()
     t1 = 0
     
-    while len(browser.find_elements_by_class_name("odd")) < 1 and len(browser.find_elements_by_class_name("run")) < 1 or t1-t0 >= 3:
+    while len(browser.find_elements_by_class_name("odd")) < 1 and len(browser.find_elements_by_class_name("run")) < 1 and t1-t0 <= 3:
         sl(0.5)
         t1 = time()
-    
-    if t1-t0 >= 3: return False
+
+    if t1-t0 >= 3: print('timeout'); return False
 
     webSite = browser.page_source
 

@@ -32,7 +32,6 @@ def getAthletes(team):
     # Este find_all() pega todos os links que existe dentro de cada 'fl athletes', e pondo cada um num array da equipe
     athletes = team.find_all('a')
 
-    print('\ntime')
     # Para cada item de athletes, vai ser pego apenas o seu nome, e feito tratamento de texto
     for athlete in athletes:
         # O index do atleta, para alterar o valor do atleta no array "athletes"
