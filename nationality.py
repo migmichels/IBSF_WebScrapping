@@ -16,6 +16,8 @@ def nationalityAthletes(browser, soup, url):
         for athleteLink in athletesLinks:
             athleteLink = 'https://www.ibsf.org' + athleteLink['href'] # O link de retorno é apenas /en/component/events/event/(ID)
             athleteSoup = getSoup(browser, athleteLink)
+            if not(athleteSoup) :
+                continue
             athlete = athleteResults(browser, athleteSoup)
             athletes.append(athlete)
 
