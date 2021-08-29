@@ -19,11 +19,12 @@ def getSoup(browser, url):
     t0 = time()
     t1 = 0
     
-    while len(browser.find_elements_by_class_name("odd")) < 1 and len(browser.find_elements_by_class_name("run")) < 1:
-        if t1-t0 >= 3: return False
+    while len(browser.find_elements_by_class_name("odd")) < 1 and len(browser.find_elements_by_class_name("run")) < 1 or t1-t0 >= 3:
         sl(0.5)
         t1 = time()
     
+    if t1-t0 >= 3: return False
+
     webSite = browser.page_source
 
     soup = BeautifulSoup(webSite, 'html.parser')

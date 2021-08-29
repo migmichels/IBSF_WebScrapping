@@ -7,9 +7,11 @@ def nationalityAthletes(browser, soup, url):
 
     athletes = []
 
-    lenghtPages = len(soup.select('span a.paginate_button'))
+    paginate_buttonsTag = soup.select('span a.paginate_button')
+    lenghtPages = int(paginate_buttonsTag[len(paginate_buttonsTag)-1].contents[0])
     
     for indexPage in range(0, lenghtPages):
+        print('Nacionalidade: página ' + str(indexPage))
         athletesLinks = soup.find('table', id='results_table').find_all('a')
         for athleteLink in athletesLinks:
             athleteLink = 'https://www.ibsf.org' + athleteLink['href'] # O link de retorno é apenas /en/component/events/event/(ID)

@@ -1,5 +1,5 @@
 def getRaceAttributes():
-    global place, datetime, category, teams, runs, quantityRunsPerTeam
+    global place, datetime, category, teams, runs, quantityRunsPerTeam, limitRun, tbody
 
     # Lugar
     place = soup.find('div', class_='place').contents[0]
@@ -12,16 +12,18 @@ def getRaceAttributes():
     # Cada corrida esta num tr de classe run, separado do tr de classe crew, ou seja, não está agrupado com o 'teams' sendo assim segue-se uma lógica diferente explicada a seguir
     runs = soup.find_all('tr', class_='run')
 
-    quantityRunsPerTeam = int(len(runs)/len(teams))
+    tbody = soup.find('tbody').contents
+
+    limitRun = 0
 
 def getSpecificTeam(athleteURL):
-    global teams
+    global teams,limitRun
 
     team = soup.find_all('a', href=athleteURL)[1].parent
 
-    limitRun = quantityRunsPerTeam*(teams.index(team)+1)
+    limitRun = runs.index(team.findNext('tr', class_='run'))
     
-    teams = processTeamAttributes(team, limitRun)
+    teams = processTeamAttributes(team)
 
     # runsTeam, total = getRuns(limitRun)
 
@@ -30,6 +32,7 @@ def getAthletes(team):
     # Este find_all() pega todos os links que existe dentro de cada 'fl athletes', e pondo cada um num array da equipe
     athletes = team.find_all('a')
 
+    print('\ntime')
     # Para cada item de athletes, vai ser pego apenas o seu nome, e feito tratamento de texto
     for athlete in athletes:
         # O index do atleta, para alterar o valor do atleta no array "athletes"
@@ -37,13 +40,31 @@ def getAthletes(team):
 
         # Tratamento de texto, pois haviam algumas quebras de linha
         # print(athlete[indexAthletes]) # Compare descomentando esse print() e o próximo
-        athletes[indexAthletes] = athlete.contents[0].replace('\n', '')
+        if athlete.contents[0] == '\n' :
+            athleteContent = athlete.contents[2]
+        else:
+            athleteContent = athlete.contents[0]
+
+        athletes[indexAthletes] = athleteContent.replace('\n', '').strip()
         # print(athlete[indexAthletes])
 
     return athletes
 
-def getRuns(limitRun):
-    firstRun = limitRun-quantityRunsPerTeam
+def getRuns():
+    global limitRun
+
+    firstRun = limitRun
+
+    try: indexTbody = tbody.index(runs[limitRun])
+    except: return None, None
+
+    i = 0
+
+    while True:
+        i+=1
+        if limitRun + i == len(runs) or str(tbody[indexTbody+i].findNext('tr').get('class')[0]) != 'run' : break
+
+    limitRun+=i
 
     # runsTeam : Array com corridas por equipe
     # Quando começar a iteração de uma nova equipe, a variável é resetada
@@ -126,15 +147,14 @@ def getRuns(limitRun):
 
     return runsTeam, total
 
-def processTeamAttributes(team, limitRun):
+def processTeamAttributes(team):
     # O nome do país está em img, no campo de descrição alt
     country = team.find('img', class_='country-flag')['alt']
 
     athletes = getAthletes(team)
 
     # O número de corridas por equipe é igual á quantidade de corridas, dividida pela quantidade de equipes
-    limitRun += quantityRunsPerTeam
-    runsTeam, total = getRuns(limitRun)
+    runsTeam, total = getRuns()
 
     return {
         'country' : country,
@@ -147,11 +167,10 @@ def getTeamsAttributes(teams):
     global quantityRunsPerTeam
     # Cada corrida é separada em 'tr' de classe 'run' diferente
     # indexRun : index do tr de classe run, limitRun : Quantidade de corridas por equipe
-    limitRun = 0
 
     # Para cada div da equipe (ou para cada equipe) vai ser feita uma função...
     for team in teams:
-        teamInfos = processTeamAttributes(team, limitRun)
+        teamInfos = processTeamAttributes(team)
 
         index = teams.index(team)
         teams[index] = teamInfos

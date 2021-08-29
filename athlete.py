@@ -7,9 +7,11 @@ def athleteResults(browser, soup):
 
     results = []
 
-    lenghtPages = len(soup.select('span a.paginate_button'))
+    paginate_buttonsTag = soup.select('span a.paginate_button')
+    lenghtPages = int(paginate_buttonsTag[len(paginate_buttonsTag)-1].contents[0])
     
     for indexPage in range(0, lenghtPages):
+        print('Atleta: página ' + str(indexPage))
         resultsLinks = soup.find('table', id='results_table').find_all('a')
         for resultLink in resultsLinks:
             resultLink = 'https://www.ibsf.org' + resultLink['href'] # O link de retorno é apenas /en/component/events/event/(ID)
