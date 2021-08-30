@@ -8,7 +8,7 @@ def startBrowser():
     options = Options()
     options.headless = True; options.add_argument("--log-level=3")
     options.page_load_strategy = 'eager'
-    
+
     browser = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
     return browser
@@ -19,11 +19,11 @@ def getSoup(browser, url):
     t0 = time()
     t1 = 0
     
-    while len(browser.find_elements_by_class_name("odd")) < 1 and len(browser.find_elements_by_class_name("run")) < 1 and t1-t0 <= 3:
+    while len(browser.find_elements_by_class_name("odd")) < 1 and len(browser.find_elements_by_class_name("run")) < 1 and t1-t0 <= 4:
         sl(0.5)
         t1 = time()
 
-    if t1-t0 >= 3: print('timeout'); return False
+    if t1-t0 >= 4: print('timeout'); return None
 
     webSite = browser.page_source
 

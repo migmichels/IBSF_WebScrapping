@@ -177,6 +177,9 @@ def getTeamsAttributes(teams):
     return teams
 
 def getRace(soupParameter, athleteUrl = False):
+    if not(soupParameter) :
+        return None
+
     global soup
     soup = soupParameter
 

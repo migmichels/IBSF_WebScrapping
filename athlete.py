@@ -9,6 +9,9 @@ def athleteResults(browser, soup):
 
     paginate_buttonsTag = soup.select('span a.paginate_button')
     lenghtPages = int(paginate_buttonsTag[len(paginate_buttonsTag)-1].contents[0])
+
+    athleteName = soup.find('div', class_='nome_completo').contents[0]
+    print('\n\n' + athleteName)
     
     for indexPage in range(0, lenghtPages):
         print('Atleta: página ' + str(indexPage))
@@ -23,4 +26,4 @@ def athleteResults(browser, soup):
         if indexPage == lenghtPages: break
         soup = getSoup(browser, (url + str(indexPage)))
 
-    return results
+    return {'name' : athleteName, 'results' : results}
